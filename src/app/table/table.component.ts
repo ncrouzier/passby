@@ -96,8 +96,6 @@ export class TableComponent implements OnInit {
   formatLabel(value) {
     if (this.synchData !== undefined && this.synchData !== null && this.synchData.length !== 0 && this.synchData[value][0] !== undefined) {
       return new Date(this.synchData[value][0].meta.time).toLocaleTimeString()
-    } else {
-      return value
     }
 
   }
@@ -162,12 +160,11 @@ export class TableComponent implements OnInit {
   }
 
   viewInfo(_route) {
-    let list = this.routeService.getRouteLatLngs(_route);
+    let list = this.routeService.getRouteLatLngs(_route)
     console.log(list)
   }
 
   changeSpeed(value) {
-    console.log(value)
     var minv = Math.log(1000);
     var maxv = Math.log(1);
     // calculate adjustment factor
@@ -185,11 +182,9 @@ export class TableComponent implements OnInit {
 
   playPause() {
     if (this.interval !== null) {
-      console.log("stop");
       clearInterval(this.interval)
       this.interval = null;
     } else if (this.synchData !== undefined && this.synchData !== null && this.synchData.length !== 0) {
-      console.log("start " + this.intervalIncre);
       this.interval = setInterval(() => {
         if (this.sliderValue >= this.max) {
           this.sliderValue = 1
