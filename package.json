@@ -1,5 +1,5 @@
 {
-  "name": "flyby",
+  "name": "passby",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -12,13 +12,23 @@
   "private": true,
   "dependencies": {
     "@angular/animations": "~11.0.1",
+    "@angular/cdk": "^11.0.1",
     "@angular/common": "~11.0.1",
     "@angular/compiler": "~11.0.1",
     "@angular/core": "~11.0.1",
     "@angular/forms": "~11.0.1",
+    "@angular/material": "^11.0.1",
     "@angular/platform-browser": "~11.0.1",
     "@angular/platform-browser-dynamic": "~11.0.1",
     "@angular/router": "~11.0.1",
+    "@fortawesome/fontawesome-free": "^5.15.1",
+    "beautifymarker": "^1.0.9",
+    "d3": "^6.2.0",
+    "leaflet": "1.7.1",
+    "leaflet-distance-markers": "git://github.com/adoroszlai/leaflet-distance-markers",
+    "leaflet-geometryutil": "^0.9.3",
+    "leaflet-gpx": "^1.5.0",
+    "leaflet-routing-machine": "3.2.12",
     "rxjs": "~6.6.0",
     "tslib": "^2.0.0",
     "zone.js": "~0.10.2"

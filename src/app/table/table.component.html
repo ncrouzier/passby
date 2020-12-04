@@ -1,0 +1,57 @@
+<div class="routeTable" style="padding-top:15px;">
+
+<div>
+  <div class="open-file-div">
+    <button (click)="openFile()">Select GPXs
+      <input  type="file" multiple #inputFile style="display:none" (change)="openGPX($event)">
+    </button>
+  </div>
+  <div>
+    <button class="control-button" (click)="bw()"><i class="fas fa-backward"></i></button><button class="control-button" (click)="playPause()"><i class ="fas" [ngClass]="{ 'fa-pause':interval !== null,'fa-play':interval ===null}"></i></button><button class="control-button" (click)="fw()"><i class="fas fa-forward"></i></button>
+    {{formatLabel(sliderValue)}}  <mat-slider style="width:60%;margin-left:5px; margin-right:5px; " [value]="initialIntervalIncre" min="0" max="100"  (input)="changeSpeed($event.value)"  flex></mat-slider>
+
+    </div>
+
+
+  <mat-slider style="width:60%;margin-left:15px; margin-right:15px; " [value]="sliderValue" min="1" max="{{max}}"  (input)="updateMarkers($event.value)" aria-label="nav Date" flex></mat-slider>
+{{intervalIncre}}
+</div>
+
+  <ul class="info">
+    <!-- <li>Start Time: <span class="time"></span>{{startTime | date:'dd-M-yyyy H:mm:ss'}}</li>
+    <li>End Time: <span class="time"></span>{{endTime | date:'dd-M-yyyy H:mm:ss'}}</li> -->
+  </ul>
+
+  <!-- <mat-slider thumbLabel tickInterval="1000" min="1" max="100000" (input)="updateMarker($event)"></mat-slider> -->
+
+
+  <table class="mat-table">
+    <tr class="mat-header-row">
+      <th class="mat-header-cell"><input type="checkbox" class="select_all_routes"></th>
+      <th class="mat-header-cell">Name</th>
+      <th class="mat-header-cell">Set as reference</th>
+      <th class="mat-header-cell">Remove</th>
+      <!-- <th>Info</th> -->
+    </tr>
+    <tbody>
+      <ng-container *ngIf="layerGrp">
+        <tr class="mat-row" *ngFor="let route of sort()" [class.reference]="route._info.isReference === true"  >
+          <td><input type="checkbox" class="select_route"></td>
+          <td class="mat-cell"><span *ngIf="route._info.isReference === true">*</span> {{route._info.name}}</td>
+          <td class="mat-cell center" >
+            <button *ngIf="!route._info.isReference === true" (click)="changeToReference(route)"><i class="fas fa-hand-pointer"></i>
+            </button>
+          </td>
+          <td class="mat-cell">
+            <button (click)="deleteRoute(route)"><i class="fas fa-trash"></i>
+            </button>
+          </td>
+          <!-- <td>
+            <button (click)="viewInfo(route)">View info
+            </button>
+          </td> -->
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>
