@@ -29,6 +29,7 @@
     "leaflet-geometryutil": "^0.9.3",
     "leaflet-gpx": "^1.5.0",
     "leaflet-routing-machine": "3.2.12",
+    "ngx-color-picker": "^10.1.0",
     "rxjs": "~6.6.0",
     "tslib": "^2.0.0",
     "zone.js": "~0.10.2"

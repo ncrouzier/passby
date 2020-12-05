@@ -38,6 +38,37 @@ export class RouteService {
     this.markerObs$.next({ marker: marker, latLng: latLng })
   }
 
+  updateMarkerColor(route, color) {
+    let i: number
+    for (i = 0; i < this.routes.getLayers().length; i++) {
+      if (this.routes.getLayers()[i] === route) {
+        this.routes.getLayers()[i].marker.options.icon.options.backgroundColor = color
+        this.routes.getLayers()[i].marker.options.icon.options.borderColor = color
+        this.routes.getLayers()[i].marker.setIcon(this.routes.getLayers()[i].marker.options.icon)
+        this.routes.getLayers()[i].options.polyline_options.color = color
+        this.routes.getLayers()[i].setStyle({
+          color: color
+        });
+      }
+    }
+
+    for (i = 0; i < this.synchedRoutes[0].length; i++) {
+      if (this.synchedRoutes[0][i] === route) {
+        this.synchedRoutes[0][i].marker.options.icon.options.backgroundColor = color
+        this.synchedRoutes[0][i].marker.options.icon.options.borderColor = color
+        this.synchedRoutes[0][i].marker.setIcon(this.synchedRoutes[0][i].marker.options.icon)
+        this.synchedRoutes[0][i].options.polyline_options.color = color
+        this.synchedRoutes[0][i].setStyle({
+          color: color
+        });
+
+      }
+    }
+
+    this.routesObs$.next(this.routes)
+    this.synchDataObs$.next(this.synchedRoutes)
+  }
+
   getReferenceRoute() {
     let i: number
     for (i = 0; i < this.routes.getLayers().length; i++) {
@@ -87,19 +118,6 @@ export class RouteService {
       that.routes.getLayers()[0]._info.isReference = true
     }
 
-    // var i = 0;
-    // var indextodelete
-    // that.synchedRoutes[0].forEach(function(_route: any) {
-    //   if (route == _route) {
-    //     indextodelete = i
-    //   }
-    //   i++
-    // })
-    // if (indextodelete !== undefined) {
-    //   that.removeCol(that.synchedRoutes, indextodelete)
-    // }
-    // this.synchDataObs$.next(that.synchedRoutes)
-
     this.routesObs$.next(this.routes)
     this.deletedRouteObs$.next(route)
   }
@@ -118,16 +136,17 @@ export class RouteService {
 
 
   createSynchedData() {
+    // console.time('createSynchedData')
     let that = this;
     if (that.getReferenceRoute() === undefined) {
       //probably no routes anymore, update synchData (maybe after last delete)
       this.synchDataObs$.next([])
+      // console.timeEnd('createSynchedData')
       return;
     }
 
     var referenceLatLngArray = that.getRouteLatLngs(that.getReferenceRoute());
     var startReferenceDate = new Date(referenceLatLngArray[0].meta.time)
-    // console.log(referenceLatLngArray[0])
     var endReferenceDate = new Date(referenceLatLngArray[referenceLatLngArray.length - 1].meta.time)
 
     if (referenceLatLngArray) {
@@ -139,20 +158,16 @@ export class RouteService {
       that.synchedRoutes.push(new Array(numberOfRoutes))
       that.synchedRoutes[0][0] = that.getReferenceRoute();
 
-      var time
+      var time: number
       for (time = 0; time < timeWindowInSec + 1; time++) {
         var ar = new Array(numberOfRoutes)
         var l = new L.LatLng(null, null);
-        l.meta = { time: null, placeholder: true }; l.meta.time = new Date(startReferenceDate.getTime() + time * 1000)
+        l.meta = { time: new Date(startReferenceDate.getTime() + time * 1000), placeholder: true };
         ar[0] = l
         that.synchedRoutes.push(ar)
       }
 
-      // let data = new Array(numberOfRoutes)
-      // data[0] = that.getReferenceRoute()
-
       referenceLatLngArray.forEach(function(refrouteLatLng: any) {
-
         var ttt = Math.abs((new Date(refrouteLatLng.meta.time).getTime() - startReferenceDate.getTime()) / 1000)
         let data = new Array(numberOfRoutes)
         data[0] = refrouteLatLng
@@ -160,9 +175,16 @@ export class RouteService {
         // that.synchedRoutes.push([refrouteLatLng]);
       });
 
+      //fill in the empty lat lng in reference route
+      for (time = 1; time < timeWindowInSec + 1; time++) {
+        if (that.synchedRoutes[time][0].meta.placeholder === true) {
+          that.synchedRoutes[time][0].lat = that.synchedRoutes[time - 1][0].lat
+          that.synchedRoutes[time][0].lng = that.synchedRoutes[time - 1][0].lng
+        }
+      }
 
 
-      var i
+      var i: number
       var routeNumber = 0
       for (i = 0; i < this.routes.getLayers().length; i++) {
         let route = this.routes.getLayers()[i];
@@ -170,8 +192,8 @@ export class RouteService {
           let startTime = that.getRouteLatLngs(route)[0].meta.time
           let endTime = that.getRouteLatLngs(route)[that.getRouteLatLngs(route).length - 1].meta.time
           routeNumber++
+          // if acitvity has zero time point in common with reference, we ignore it and remove it's place in the synchedRoutes data
           if (new Date(endTime) < new Date(referenceLatLngArray[0].meta.time) || new Date(startTime) > new Date(referenceLatLngArray[referenceLatLngArray.length - 1].meta.time)) {
-            // console.log("out of scope")
             this.removeCol(that.synchedRoutes, routeNumber)
             routeNumber--
           } else {
@@ -182,82 +204,88 @@ export class RouteService {
             //find when it starts and fill in a la bourrin
             var j: number
 
-
+            var needtofillbeginingpoint = false
             var tt = 1
-            j = 0
+            var j = 0
+
+            var latestInsertedData: { lat: any; lng: any; };
+
             dance:
             while (j < that.getRouteLatLngs(route).length - 1) {
               var currentDate = new Date(that.getRouteLatLngs(route)[j].meta.time)
               if (currentDate > endReferenceDate) {
                 break dance
               }
-              while (new Date(that.getRouteLatLngs(route)[j].meta.time) < startReferenceDate) {
+
+              //Ignore everything that happened before the start of the reference activity
+              while (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() < startReferenceDate.getTime()) {
                 j++
               }
 
+              // now we are in the time between the start of the reference acitivty and it's end (included)
               while (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() <= endReferenceDate.getTime()) {
-                // console.log(new Date(that.getRouteLatLngs(route)[j].meta.time) + " " + new Date(that.synchedRoutes[tt][0].meta.time))
+
+                // if datapoint time equals to reference time, save it
                 if (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() === new Date(that.synchedRoutes[tt][0].meta.time).getTime()) {
                   that.synchedRoutes[tt][routeNumber] = that.getRouteLatLngs(route)[j]
-                  j++
-                }
-                // else {
-                //   var l = new L.LatLng(null, null);
-                //   l.meta = { time: new Date(that.getRouteLatLngs(route)[j].meta.time), placeholder: true }
-                //   that.synchedRoutes[tt][routeNumber] = l
-                // }
+                  latestInsertedData = that.getRouteLatLngs(route)[j]
 
+                  //we enter here if the first few points did not have a match with refernce. we backward fill with first datapoint we have in the valid interval
+                  if (needtofillbeginingpoint) {
+                    var h: number
+                    for (h = 1; h < tt; h++) {
+                      var l = new L.LatLng(that.synchedRoutes[tt][routeNumber].lat, that.synchedRoutes[tt][routeNumber].lng);
+                      l.meta = { time: that.synchedRoutes[tt][0].meta.time, placeholder: true }
+                      that.synchedRoutes[h][routeNumber] = l
+                    }
+                    //we never need to do this again for this route so we set the flag
+                    needtofillbeginingpoint = false;
+                  }
+                  //we found a place to put the jth element, on to the next one
+                  j++
+                } else {
+                  //if first datapoint is undefined, we set the flag to back fill as soon as we find a match
+                  if (tt === 1) {
+                    needtofillbeginingpoint = true
+                  }
+                  // since they don't match, that means the datapoint is missing for this time in the route, so we fill in a placeholder (copy the previous good one)
+                  if (tt > 1 && that.synchedRoutes[tt - 1][routeNumber] !== undefined) {
+                    var l = new L.LatLng(that.synchedRoutes[tt - 1][routeNumber].lat, that.synchedRoutes[tt - 1][routeNumber].lng);
+                    l.meta = { time: that.synchedRoutes[tt - 1][0].meta.time, placeholder: true }
+                    that.synchedRoutes[tt][routeNumber] = l
+                    latestInsertedData = l
+                  }
+                }
                 tt++
-                if (j >= that.getRouteLatLngs(route).length) {
+
+                // We are at the end of our datapoints
+                if (j === that.getRouteLatLngs(route).length) {
+                  //if we still have empty rows in our synchData, fill them with the last datapoint and the correct date
+                  while (tt < that.synchedRoutes.length) {
+                    var lastdata = that.getRouteLatLngs(route)[that.getRouteLatLngs(route).length - 1]
+                    var l = new L.LatLng(lastdata.lat, lastdata.lng);
+                    l.meta = { time: that.synchedRoutes[tt][0].meta.time, placeholder: true }
+                    that.synchedRoutes[tt][routeNumber] = l
+                    latestInsertedData = l
+                    tt++
+                  }
+                  //then finish
                   break dance
                 }
+
               }
 
+              // if the activity ends after the reference but is missing points at the end (tt still < synchData length), we fill them with the last lat lng.
+              // This can happen when activity does not record every second and the next data point would have been just after the reference end time
+              while (tt < that.synchedRoutes.length) {
+                var l = new L.LatLng(latestInsertedData.lat, latestInsertedData.lng);
+                l.meta = { time: that.synchedRoutes[tt][0].meta.time, placeholder: true }
+                that.synchedRoutes[tt][routeNumber] = l
+                tt++
+              }
 
               j++
             }
-
-            // var tt = 0
-            // j = 0
-            // dance:
-            // while (j < that.getRouteLatLngs(route).length - 1) {
-            //   var currentDate = new Date(that.getRouteLatLngs(route)[j].meta.time)
-            //   if (currentDate > endReferenceDate || tt >= referenceLatLngArray.length) {
-            //     break dance
-            //   }
-            //   while (new Date(that.getRouteLatLngs(route)[j].meta.time) < startReferenceDate) {
-            //     j++
-            //   }
-            //
-            //   while (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() > new Date(referenceLatLngArray[tt].meta.time).getTime()) {
-            //     tt++
-            //     if (tt >= referenceLatLngArray.length) {
-            //       break dance
-            //     }
-            //   }
-            //
-            //   while (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() <= new Date(referenceLatLngArray[tt].meta.time).getTime()) {
-            //
-            //
-            //     if (new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() === new Date(referenceLatLngArray[tt].meta.time).getTime()) {
-            //       var ttt = Math.abs((new Date(that.getRouteLatLngs(route)[j].meta.time).getTime() - startReferenceDate.getTime()) / 1000)
-            //
-            //       that.synchedRoutes[ttt + 1][routeNumber] = that.getRouteLatLngs(route)[j]
-            //       tt++
-            //       if (tt >= referenceLatLngArray.length) {
-            //         break dance
-            //       }
-            //     }
-            //
-            //     j++
-            //     if (j >= that.getRouteLatLngs(route).length) {
-            //       break dance
-            //     }
-            //   }
-            //
-            //
-            //   j++
-            // }
 
 
           }
@@ -266,21 +294,11 @@ export class RouteService {
 
       }
       // console.log(that.synchedRoutes)
-
     }
 
-    //remove routes that didn't make the cut (not in time frame)
-    // var i
-    // var res = []
-    // for (i=0;i < this.synchedRoutes[0].length;i++){
-    //   if (this.synchedRoutes[0][i] === undefined){
-    //     res.push()
-    //   }
-    //
-    // }
-    // this.removeCol(that.synchedRoutes,2)
 
     this.synchDataObs$.next(that.synchedRoutes)
+    // console.timeEnd('createSynchedData')
   }
 
 }

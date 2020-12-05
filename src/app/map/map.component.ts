@@ -63,41 +63,6 @@ export class MapComponent implements OnInit {
     }
   }
 
-  // handle(e) {
-  //   let that = this;
-  //
-  //   var fileReader = new FileReader();
-  //   [...e.target.files].forEach(file => {
-  //     var fileReader = new FileReader();
-  //     var color = "#" + Math.floor(Math.random() * (1 << 3 * 8)).toString(16).padStart(6, "0")
-  //     fileReader.onload = (e) => {
-  //       var gpx = fileReader.result
-  //       var layer = new L.GPX(gpx, {
-  //         async: true,
-  //         polyline_options: {
-  //           color: color,
-  //           fillOpacity: 1
-  //           // ,distanceMarkers: { offset: 1609.34 }
-  //         },
-  //         marker_options: {
-  //           startIconUrl: null,
-  //           endIconUrl: null
-  //           // startIconUrl: '/assets/images/pin-icon-start.png',
-  //           // endIconUrl: '/assets/images/pin-icon-end.png',
-  //           // shadowUrl: '/assets/images/pin-shadow.png'
-  //         }
-  //       }).on('loaded', function(e) {
-  //         that.map.fitBounds(e.target.getBounds());
-  //         that.routeService.addRoute(e.target, color);
-  //         that.routeService.createSynchedData()
-  //       }).addTo(that.map)
-  //     }
-  //     fileReader.readAsText(file)
-  //   });
-  //   this.routeService.createSynchedData()
-  //   //clear input in case we want to reload the same
-  //   that.myInputVariable.nativeElement.value = '';
-  // }
 
   private initMap(): void {
 
@@ -120,7 +85,7 @@ export class MapComponent implements OnInit {
   }
 
   updateMarker(markerInfo: any) {
-    if (markerInfo.latLng !== undefined && markerInfo.latLng.meta.placeholder !== true) {
+    if (markerInfo.latLng !== undefined) { //&& markerInfo.latLng.meta.placeholder !== true) {
       if (markerInfo.latLng !== undefined && markerInfo.marker !== undefined) {// && markerInfo.marker._latlng !== undefined && (markerInfo.marker._latlng.lat !== 0 && markerInfo.marker._latlng.lng !== 0)) {
         if (!this.map.hasLayer(markerInfo.marker)) {
           markerInfo.marker.addTo(this.map);
