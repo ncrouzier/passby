@@ -76,7 +76,6 @@ export class RouteService {
         return this.routes.getLayers()[i]
       }
     }
-
   }
 
   addRoute(route: any, _color: string) {
@@ -138,6 +137,7 @@ export class RouteService {
   createSynchedData() {
     // console.time('createSynchedData')
     let that = this;
+
     if (that.getReferenceRoute() === undefined) {
       //probably no routes anymore, update synchData (maybe after last delete)
       this.synchDataObs$.next([])

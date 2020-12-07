@@ -5,6 +5,20 @@
 @import "~leaflet-distance-markers/leaflet-distance-marker.css";
 @import '@angular/material/prebuilt-themes/deeppurple-amber.css';
 @import '~beautifymarker/leaflet-beautify-marker-icon.css';
+@import '~@angular/cdk/overlay-prebuilt.css';
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+
+
+//time slider
+.time-line-slider.mat-slider {
+  height:24px;
+  width: 90%;
+  margin-left: 5%;
+  margin-right: 5%;
+   .mat-slider-wrapper{
+     top:11px !important;;
+   }
+}

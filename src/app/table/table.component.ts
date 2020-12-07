@@ -2,10 +2,11 @@ import { Component, OnInit, Output, EventEmitter, ViewChild, ElementRef } from '
 import * as L from 'leaflet';
 import { RouteService } from '../route.service';
 import { MapService } from '../map.service';
-import { ColorPickerService, Cmyk } from 'ngx-color-picker';
+
 
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { ColorEvent } from 'ngx-color';
 
 
 @Component({
@@ -16,7 +17,9 @@ import { takeUntil } from 'rxjs/operators';
 export class TableComponent implements OnInit {
   @ViewChild('inputFile') myInputVariable: ElementRef;
 
-
+  isOpen = false
+  hideTable = true
+  public routeForColor = null
   public layerGrp;
   public startTime = null
   public endTime = null
@@ -27,7 +30,27 @@ export class TableComponent implements OnInit {
 
   public interval = null
   public intervalIncre
-  public initialIntervalIncre = 50
+  public initialIntervalIncre = 7
+
+
+  public speedSliderValues = [
+    { "display": 1, "real": 1000 },
+    { "display": 2, "real": 500, "increment": 1 },
+    { "display": 4, "real": 250, "increment": 1 },
+    { "display": 8, "real": 125, "increment": 1 },
+    { "display": 10, "real": 100, "increment": 1 },
+    { "display": 20, "real": 50, "increment": 1 },
+    { "display": 50, "real": 20, "increment": 1 },
+    { "display": 100, "real": 10, "increment": 1 },
+    { "display": 200, "real": 5, "increment": 1 },
+    { "display": 400, "real": 5, "increment": 2 },
+    { "display": 1000, "real": 5, "increment": 5 },
+    { "display": 2000, "real": 5, "increment": 10 },
+    { "display": 5000, "real": 5, "increment": 25 }
+  ]
+
+  public multiplier = this.speedSliderValues[this.initialIntervalIncre]
+
 
   showErrorMsg = false
 
@@ -46,19 +69,30 @@ export class TableComponent implements OnInit {
 
   openGPX(ee) {
     let that = this;
-
+    let promises = [];
     var map = this.mapService.getMap()
     var fileReader = new FileReader();
 
     [...ee.target.files].forEach(file => {
-      var fileReader = new FileReader();
-      var color = "#" + Math.floor(Math.random() * (1 << 3 * 8)).toString(16).padStart(6, "0")
-      that.showErrorMsg = false
-      fileReader.onload = (e) => {
-        var gpx = fileReader.result
-        try {
+      let filePromise = new Promise(resolve => {
+        var fileReader = new FileReader();
+        that.showErrorMsg = false
+        fileReader.readAsText(file)
+        fileReader.onload = (e) => {
+          resolve(fileReader.result)
+        }
+      });
+      promises.push(filePromise);
+
+    })
+
+    Promise.all(promises).then(fileContents => {
+      try {
+        fileContents.forEach(gpx => {
+          var color = "#" + Math.floor(Math.random() * (1 << 3 * 8)).toString(16).padStart(6, "0")
+
           var layer = new L.GPX(gpx, {
-            async: true,
+
             polyline_options: {
               color: color,
               fillOpacity: 1
@@ -72,23 +106,22 @@ export class TableComponent implements OnInit {
               // shadowUrl: '/assets/images/pin-shadow.png'
             },
 
-          }).on('loaded', function(e) {
-            map.fitBounds(e.target.getBounds());
-            that.routeService.addRoute(e.target, color);
-            that.routeService.createSynchedData()
-          }).on('error', function(e) {
-            console.log('Error loading file: ' + e.err);
-          }).addTo(map)
+          });
+          map.fitBounds(layer.getLayers()[0].getBounds());
+          that.routeService.addRoute(layer, color);
+          map.addLayer(layer)
+        })
+        // console.log(layer)
 
-        } catch (err) {
-          that.showErrorMsg = true
-          console.log('Error loading file: ' + err.err);
-        }
+      } catch (err) {
+        that.showErrorMsg = true
+        console.log('Error loading file: ' + err.err);
       }
-      fileReader.readAsText(file)
-    });
 
-    this.routeService.createSynchedData()
+
+      that.routeService.createSynchedData()
+    })
+
     //clear input in case we want to reload the same
     that.myInputVariable.nativeElement.value = '';
   }
@@ -107,7 +140,7 @@ export class TableComponent implements OnInit {
 
 
 
-  formatLabel(value) {
+  getSliderTime(value) {
     if (this.synchData !== undefined && this.synchData !== null && this.synchData.length !== 0 && this.synchData[value][0] !== undefined) {
       return new Date(this.synchData[value][0].meta.time).toLocaleTimeString()
     }
@@ -146,14 +179,25 @@ export class TableComponent implements OnInit {
 
   }
 
-  colorPickerChange(route, value) {
-    this.routeService.updateMarkerColor(route, value)
+  pickColor(route) {
+
   }
 
-  onEventLog(event: string, data: any): void {
-    console.log(event, data);
+  triggerOrigin: any;
+
+  toggle(trigger: any, route) {
+    this.triggerOrigin = trigger;
+    this.isOpen = !this.isOpen
+    this.routeForColor = route
   }
 
+  handleChange($event: ColorEvent) {
+
+    if (this.routeForColor !== null) {
+      this.routeService.updateMarkerColor(this.routeForColor, $event.color.hex)
+
+    }
+  }
 
   updateSynchData() {
     let that = this
@@ -188,20 +232,21 @@ export class TableComponent implements OnInit {
 
   }
 
-  viewInfo(_route) {
-    let list = this.routeService.getRouteLatLngs(_route)
-    console.log(list)
-  }
+
 
   changeSpeed(value) {
-    var minv = Math.log(1000);
-    var maxv = Math.log(1);
-    // calculate adjustment factor
-    var scale = (maxv - minv) / (100 - 0);
-
-    var milli = Math.exp(minv + scale * (value - 0));
-    this.intervalIncre = milli
-    //if it's running, stop it and start at new rate otherwise do nothing
+    this.multiplier = this.speedSliderValues[value]
+    // this.intervalIncre = this.multiplier.real
+    // console.log(this.multiplier, this.intervalIncre)
+    // var minv = Math.log(1000);
+    // var maxv = Math.log(10);
+    // // calculate adjustment factor
+    // var scale = (maxv - minv) / (100 - 0);
+    //
+    // var milli = Math.exp(minv + scale * (value - 0));
+    // this.intervalIncre = milli
+    // this.multiplier = milli
+    // //if it's running, stop it and start at new rate otherwise do nothing
     if (this.interval !== null) {
       clearInterval(this.interval)
       this.interval = null;
@@ -218,10 +263,15 @@ export class TableComponent implements OnInit {
         if (this.sliderValue >= this.max) {
           this.sliderValue = 1
         } else {
-          this.sliderValue++
+          if (this.multiplier.increment > 1) {
+            this.sliderValue = Math.min(this.sliderValue + this.multiplier.increment, this.max)
+          } else {
+            this.sliderValue++
+          }
+
           this.updateMarkers(this.sliderValue)
         }
-      }, this.intervalIncre)
+      }, this.multiplier.real)
     }
   }
 
@@ -233,11 +283,15 @@ export class TableComponent implements OnInit {
   }
 
   fw() {
-
+    if (this.sliderValue < this.max) {
+      this.sliderValue++
+    }
   }
 
   bw() {
-
+    if (this.sliderValue > 2) {
+      this.sliderValue--
+    }
   }
 
   deleteRoute(route: any) {

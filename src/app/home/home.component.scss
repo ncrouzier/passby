@@ -1,8 +1,17 @@
 .map-route-overlay{
-  position: absolute;
-   top: 30px;
+   position: absolute;
+   top: 0px;
    left: 0px;
-   margin: 30px;
+   margin: 20px;
    width: 300px;
    z-index: 1000;
+}
+
+.map-title-overlay{
+  position: absolute;
+  pointer-events:none;
+  bottom: 10px;
+  right: 0px;
+  margin: 10px;
+  z-index: 1000;
 }

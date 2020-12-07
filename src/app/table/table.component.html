@@ -1,70 +1,81 @@
-<div class="routeTable" style="padding-top:15px;">
+<div class="routeTable">
 
-<div>
-  <div class="open-file-div">
-    <button (click)="openFile()" style="margin-right:20px"  >Select GPXs
-      <input  type="file" accept=".gpx" multiple #inputFile style="display:none" (change)="openGPX($event)">
-    </button><ng-container *ngIf="showErrorMsg">
-  <span  class="file-error-msg">
-    Something went wrong while loading the files!
-    </span>
-    </ng-container>{{formatLabel(sliderValue)}}
-  </div>
   <div>
-    <button class="control-button" (click)="bw()"><i class="fas fa-backward"></i></button><button class="control-button" (click)="playPause()"><i class ="fas" [ngClass]="{ 'fa-pause':interval !== null,'fa-play':interval ===null}"></i></button><button class="control-button" (click)="fw()"><i class="fas fa-forward"></i></button>
-     <mat-slider title="animation speed" style="min-width:60px; margin-left:5px; margin-right:5px; " [(value)]="initialIntervalIncre" min="0" max="100"  (input)="changeSpeed($event.value)"  flex></mat-slider>
+    <div fxLayout="row" fxLayoutAlign="space-between  center" class="header">
+      <div> <button (click)="openFile()" style=" width:120px; text-align:center; height:30px">Select GPXs <i class="fas fa-file-upload"></i>
+          <input type="file" accept=".gpx" multiple #inputFile style="display:none" (change)="openGPX($event)">
+        </button>
+      </div>
+      <div> <i (click)="hideTable = !hideTable" style="margin-right:10px;" title="toggle route list" class="hand" [ngClass]=" (hideTable)? 'fas fa-chevron-up': 'fas fa-chevron-down'"></i>
+      </div>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="nogrow">
+        <button class="control-button" (click)="bw()"><i class="fas fa-backward"></i></button><button class="control-button" (click)="playPause()"><i class="fas"
+            [ngClass]="{ 'fa-pause':interval !== null,'fa-play':interval ===null}"></i></button><button class="control-button" (click)="fw()"><i class="fas fa-forward"></i></button>
+      </div>
+      <div fxFlex="nogrow">
+        <mat-slider title="animation speed" style="min-width:60px; margin-left:5px; margin-right:5px; " [(value)]="initialIntervalIncre" min="0" max="12" (input)="changeSpeed($event.value)" flex></mat-slider>
+        <span class="multiplerTxt">x{{multiplier.display}}</span>
+      </div>
+      <div fxFlex style="text-align:right">
+        {{getSliderTime(sliderValue)}}
+      </div>
     </div>
 
+    <mat-slider title="timeline" class="time-line-slider" [(value)]="sliderValue" min="1" max="{{max}}" (input)="updateMarkers($event.value)" aria-label="nav Date" flex></mat-slider>
 
-  <mat-slider title="timeline" class="time-line-slider" [(value)]="sliderValue" min="1" max="{{max}}"  (input)="updateMarkers($event.value)" aria-label="nav Date" flex></mat-slider>
+  </div>
 
-</div>
 
-  <ul class="info">
-    <!-- <li>Start Time: <span class="time"></span>{{startTime | date:'dd-M-yyyy H:mm:ss'}}</li>
-    <li>End Time: <span class="time"></span>{{endTime | date:'dd-M-yyyy H:mm:ss'}}</li> -->
-  </ul>
 
   <!-- <mat-slider thumbLabel tickInterval="1000" min="1" max="100000" (input)="updateMarker($event)"></mat-slider> -->
 
+  <!-- <button cdkOverlayOrigin  #trigger="cdkOverlayOrigin" (click)="toggle(trigger, null);" >
+  {{isOpen ? "Close" : "Open"}}
+  </button> -->
+  <div *ngIf="hideTable" class="route-table">
 
-  <table class="mat-table route-table" >
-    <tr class="mat-header-row">
-      <th class="mat-header-cell" style="width:36px"></th>
-      <th class="mat-header-cell">Name</th>
-      <th class="mat-header-cell">Set as reference</th>
-      <th class="mat-header-cell">Remove</th>
-      <!-- <th>Info</th> -->
-    </tr>
-    <tbody>
-      <ng-container *ngIf="layerGrp">
-        <tr class="mat-row" *ngFor="let route of sort()" [class.reference]="route._info.isReference === true"  >
-          <td>
-            <span class="hand" [style.color]="color"
-      [cpPosition]="'bottom'"
-      [cpPositionOffset]="'50%'"
-      [cpPositionRelativeToArrow]="true"
-      [cpDisableInput]="true"
-      [(colorPicker)]="color"
-      (colorPickerChange)="colorPickerChange(route,$event)">
-      <div [style.border-color]="route.marker.options.icon.options.borderColor" [style.background-color]="route.marker.options.icon.options.backgroundColor" class="beautify-marker marker route-icon" ><i class="fa fa-running route-icon-tx"></i></div>
-    </span>
-          </td>
-          <td class="mat-cell"><span *ngIf="route._info.isReference === true">*</span> {{route._info.name}}</td>
-          <td class="mat-cell center" >
-            <button *ngIf="!route._info.isReference === true" (click)="changeToReference(route)"><i class="fas fa-hand-pointer"></i>
-            </button>
-          </td>
-          <td class="mat-cell">
-            <button (click)="deleteRoute(route)"><i class="fas fa-trash"></i>
-            </button>
-          </td>
-          <!-- <td>
+
+    <table class="mat-table route-table">
+      <tr class="mat-header-row">
+        <th class="mat-header-cell" style="width:30px"></th>
+        <th class="mat-header-cell">Route</th>
+        <th class="mat-header-cell">Reference?</th>
+        <th class="mat-header-cell">Remove</th>
+        <!-- <th>Info</th> -->
+      </tr>
+      <tbody>
+        <ng-container *ngIf="layerGrp">
+          <tr class="mat-row" *ngFor="let route of sort()" [class.reference]="route._info.isReference === true">
+            <td>
+
+              <span class="hand" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="toggle(trigger, route)">
+                <div [style.border-color]="route.marker.options.icon.options.borderColor" [style.background-color]="route.marker.options.icon.options.backgroundColor" class="beautify-marker marker route-icon"><i
+                    class="fa fa-running route-icon-tx"></i>
+                </div>
+              </span>
+            </td>
+            <td class="mat-cell"><span *ngIf="route._info.isReference === true">*</span> {{route._info.name}}</td>
+            <td class="mat-cell center">
+              <button *ngIf="!route._info.isReference === true" (click)="changeToReference(route)"><i class="fas fa-hand-pointer"></i>
+              </button>
+            </td>
+            <td class="mat-cell center">
+              <button (click)="deleteRoute(route)"><i class="fas fa-trash"></i>
+              </button>
+            </td>
+            <!-- <td>
             <button (click)="viewInfo(route)">View info
             </button>
           </td> -->
-        </tr>
-      </ng-container>
-    </tbody>
-  </table>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
 </div>
+
+<ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="triggerOrigin" [cdkConnectedOverlayOpen]="isOpen" [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayOffsetX="40" cdkConnectedOverlayOffsetY="-100" (backdropClick)="isOpen=false">
+  <color-chrome [disableAlpha]="true" (onChange)="handleChange($event)"></color-chrome>
+</ng-template>
