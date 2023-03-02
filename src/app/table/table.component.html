@@ -23,10 +23,15 @@
       </div>
     </div>
 
-    <mat-slider title="timeline" class="time-line-slider" [(value)]="sliderValue" min="1" max="{{max}}" (input)="updateMarkers($event.value)" aria-label="nav Date" flex></mat-slider>
+    <mat-slider title="timeline" class="time-line-slider" [(value)]="sliderValue" min="{{sliderStartValue}}" tickInterval="1" step="1000" max="{{sliderEndValue}}" (input)="updateMarkers($event.value)" aria-label="nav Date" flex></mat-slider>
+    <mat-slider title="timeline" class="time-line-slider"[(value)]="sliderDValue"  min="{{sliderDStartValue}}" max="{{sliderDEndValue}}" (input)="updateDTW($event.value)" flex></mat-slider>
+    {{sliderDValue}}
+
 
   </div>
 
+
+<button  (click)="test()" >fsdf</button>
 
 
   <!-- <mat-slider thumbLabel tickInterval="1000" min="1" max="100000" (input)="updateMarker($event)"></mat-slider> -->
@@ -41,24 +46,26 @@
       <tr class="mat-header-row">
         <th class="mat-header-cell" style="width:30px"></th>
         <th class="mat-header-cell">Route</th>
+        <th class="mat-header-cell" style="width: 80px;">Time Diff</th>
         <th class="mat-header-cell">Reference?</th>
         <th class="mat-header-cell">Remove</th>
         <!-- <th>Info</th> -->
       </tr>
       <tbody>
-        <ng-container *ngIf="layerGrp">
-          <tr class="mat-row" *ngFor="let route of sort()" [class.reference]="route._info.isReference === true">
+        <ng-container *ngIf="routesInfo">
+          <tr class="mat-row" *ngFor="let route of sort()" [class.reference]="route.isReference() === true">
             <td>
 
-              <span class="hand" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="toggle(trigger, route)">
-                <div [style.border-color]="route.marker.options.icon.options.borderColor" [style.background-color]="route.marker.options.icon.options.backgroundColor" class="beautify-marker marker route-icon"><i
+              <span class="hand" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="openColorPicker(trigger, route)">
+                <div [style.border-color]="route.getMarker().options.icon.options.borderColor" [style.background-color]="route.getMarker().options.icon.options.backgroundColor" class="beautify-marker marker route-icon"><i
                     class="fa fa-running route-icon-tx"></i>
                 </div>
               </span>
             </td>
-            <td class="mat-cell"><span *ngIf="route._info.isReference === true">*</span> {{route._info.name}}</td>
+            <td class="mat-cell"><span *ngIf="route.isReference() === true">* {{route.getName()}}</span><span *ngIf="route.isReference() !== true"  [ngClass]="(route.getDistanceToRef()<200)? 'green':'red' "> {{route.getName()}}</span></td>
+            <td class="mat-cell"><span class="timediff"> {{milliSecondsToTime(route.getTimeDiffFromTime(sliderValue))}} </span></td>
             <td class="mat-cell center">
-              <button *ngIf="!route._info.isReference === true" (click)="changeToReference(route)"><i class="fas fa-hand-pointer"></i>
+              <button *ngIf="!route.isReference() === true" (click)="changeToReference(route)"><i class="fas fa-hand-pointer"></i>
               </button>
             </td>
             <td class="mat-cell center">
@@ -77,5 +84,5 @@
 </div>
 
 <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="triggerOrigin" [cdkConnectedOverlayOpen]="isOpen" [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayOffsetX="40" cdkConnectedOverlayOffsetY="-100" (backdropClick)="isOpen=false">
-  <color-chrome [disableAlpha]="true" (onChange)="handleChange($event)"></color-chrome>
+  <color-chrome color="{{routeForColor.getColor()}}"[disableAlpha]="true" (onChange)="handleColorChange($event)"></color-chrome>
 </ng-template>

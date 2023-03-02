@@ -14,6 +14,8 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   message: string;
 
+
+
   ngOnInit() {
   }
 

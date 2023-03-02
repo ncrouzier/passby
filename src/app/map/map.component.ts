@@ -3,7 +3,6 @@ import * as L from 'leaflet';
 import 'leaflet-routing-machine';
 import 'leaflet-gpx';
 import 'leaflet-geometryutil'
-import 'leaflet-distance-markers'
 import * as d3 from "d3";
 import { RouteService } from '../route.service';
 import { MapService } from '../map.service';
@@ -35,8 +34,11 @@ export class MapComponent implements OnInit {
   public map;
   public startTime = new Date();
   public endTime = new Date();
-  public layerGrp;
-  private svg;
+  // public layerGrp;
+  // private svg;
+
+  private polyline = []
+
   unsubscribe$: Subject<boolean> = new Subject();
 
   @Output() messageEvent = new EventEmitter<any>();
@@ -56,10 +58,10 @@ export class MapComponent implements OnInit {
 
   removeLayerMap(route) {
     if (route !== null) {
-      if (route.marker !== null) {
-        this.map.removeLayer(route.marker)
+      if (route.getMarker() !== null) {
+        this.map.removeLayer(route.getMarker())
       }
-      this.map.removeLayer(route);
+      this.map.removeLayer(route.getRouteData());
     }
   }
 
@@ -67,14 +69,14 @@ export class MapComponent implements OnInit {
   private initMap(): void {
 
     this.map = L.map('map', {
-      center: [38.8282, -79.5795],
-      zoom: 7,
+      center: [39.1282, -77.1795],
+      zoom: 12,
       zoomControl: false
     });
     this.mapService.setMap(this.map)
 
-    this.layerGrp = new L.layerGroup();
-
+    // this.layerGrp = new L.layerGroup();
+    // this.polyline = L.polyline([], { color: 'red' }).addTo(this.map);
 
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -85,15 +87,33 @@ export class MapComponent implements OnInit {
   }
 
   updateMarker(markerInfo: any) {
-    if (markerInfo.latLng !== undefined) { //&& markerInfo.latLng.meta.placeholder !== true) {
-      if (markerInfo.latLng !== undefined && markerInfo.marker !== undefined) {// && markerInfo.marker._latlng !== undefined && (markerInfo.marker._latlng.lat !== 0 && markerInfo.marker._latlng.lng !== 0)) {
-        if (!this.map.hasLayer(markerInfo.marker)) {
-          markerInfo.marker.addTo(this.map);
-        }
-        markerInfo.marker.setLatLng(markerInfo.latLng)
+    if (markerInfo.latLng !== undefined && markerInfo.marker !== undefined && markerInfo.latLng !== null) {// && markerInfo.marker._latlng !== undefined && (markerInfo.marker._latlng.lat !== 0 && markerInfo.marker._latlng.lng !== 0)) {
+      if (!this.map.hasLayer(markerInfo.marker)) {
+        markerInfo.marker.addTo(this.map);
       }
+      markerInfo.marker.setLatLng(markerInfo.latLng)
+    } else {
+      this.map.removeLayer(markerInfo.marker)
     }
+
   }
+
+  updatePoly(poly: any) {
+    if (poly !== undefined && poly != null) { //&& markerInfo.latLng.meta.placeholder !== true) {
+      let i
+      for (i = 0; i < poly.length; i++) {
+        if (poly[i] !== undefined) {
+          if (this.polyline[i] === undefined) {
+            this.polyline[i] = L.polyline([], { color: 'red' }).addTo(this.map);
+          }
+          this.polyline[i].setLatLngs(poly[i])
+        }
+      }
+
+    }
+
+  }
+
 
 
   constructor(private routeService: RouteService, private mapService: MapService) { }
@@ -103,6 +123,7 @@ export class MapComponent implements OnInit {
     // this.routeService.getRoutesObs().pipe(takeUntil(this.unsubscribe$)).subscribe(routes => { this.layerGrp = routes; this.updateMap(); console.log("coucou Map") }, (err) => console.error(err), () => { console.log("observable complete"); });
     this.routeService.getDeletedRouteObs().pipe(takeUntil(this.unsubscribe$)).subscribe(route => { this.removeLayerMap(route); });
     this.routeService.getMarkerObs().pipe(takeUntil(this.unsubscribe$)).subscribe(markerInfo => { if (markerInfo !== null) this.updateMarker(markerInfo); });
+    this.routeService.getPolyObs().pipe(takeUntil(this.unsubscribe$)).subscribe(poly => { this.updatePoly(poly); });
   }
 
 
